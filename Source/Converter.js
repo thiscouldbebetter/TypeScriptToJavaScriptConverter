@@ -225,7 +225,7 @@ class Converter
 					else
 					{
 						lineConverted += "<";
-						i = iBeforePossibleGeneric + 1;
+						i = iBeforePossibleGeneric;
 					}
 				}
 				else if (char == "," || char == ";" || char == ")" || char == "=")
@@ -276,6 +276,7 @@ class Converter
 			else if (char == "<")
 			{
 				// todo - Fix duplicated code.
+				// Already been bitten once by it.
 				var iBeforePossibleGeneric = i;
 				var depthIntoPossibleGeneric = 1;
 				var possibleGenericAsString = "<";
@@ -308,7 +309,7 @@ class Converter
 				else
 				{
 					lineConverted += "<";
-					i = iBeforePossibleGeneric + 1;
+					i = iBeforePossibleGeneric;
 				}
 			}
 			else if (char == "\"")
