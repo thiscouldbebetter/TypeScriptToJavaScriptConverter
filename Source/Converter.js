@@ -89,16 +89,18 @@ class Converter
 			Converter.LineFeed
 		);
 
-		var lineCount = textFromFileInAsLines.length;
-
 		var linesConverted = [];
 
-		for (var i = 0; i < lineCount; i++)
+		for (var i = 0; i < textFromFileInAsLines.length; i++)
 		{
 			var lineFromFileIn = textFromFileInAsLines[i];
 			var lineTrimmed = lineFromFileIn.trim();
 
-			if (lineTrimmed.startsWith("interface "))
+			if
+			(
+				lineTrimmed.startsWith("interface ")
+				|| lineTrimmed.startsWith("export interface ")
+			)
 			{
 				while (lineTrimmed.startsWith("}") == false)
 				{
@@ -106,9 +108,38 @@ class Converter
 					lineTrimmed = textFromFileInAsLines[i].trim();
 				}
 			}
-			else if (lineTrimmed.startsWith("class "))
+			else if (lineTrimmed.startsWith("namespace "))
+			{
+				while (lineTrimmed.startsWith("{") == false)
+				{
+					i++;
+					lineTrimmed = textFromFileInAsLines[i].trim();
+				}
+
+				// Remove final brace.
+				lineTrimmed =
+					textFromFileInAsLines[textFromFileInAsLines.length - 1];
+				while (lineTrimmed.startsWith("}") == false)
+				{
+					textFromFileInAsLines.length--;
+					lineTrimmed =
+						textFromFileInAsLines[textFromFileInAsLines.length - 1];
+				}
+				textFromFileInAsLines.length--;
+			}
+			else if 
+			(
+				lineTrimmed.startsWith("class ")
+				|| lineTrimmed.startsWith("export class ")
+			)
 			{
 				var lineConverted = lineFromFileIn;
+
+				var indexOfExport = lineConverted.indexOf("export ")
+				if (indexOfExport >= 0)
+				{
+					lineConverted = lineConverted.split("export ").join("");
+				}
 
 				var indexOfImplements = lineConverted.indexOf(" implements ");
 				if (indexOfImplements >= 0)
@@ -124,12 +155,24 @@ class Converter
 
 				linesConverted.push(lineConverted);
 			}
+			else if (lineTrimmed.startsWith("export "))
+			{
+				var lineConverted = lineFromFileIn;
+
+				var indexOfExport = lineConverted.indexOf("export ")
+				if (indexOfExport >= 0)
+				{
+					lineConverted = lineConverted.split("export ").join("");
+				}
+
+				linesConverted.push(lineConverted);
+			}
 			else if (lineTrimmed.startsWith(":"))
 			{
 				// hack - Likely a multi-line ternary operator, not a type annotation.
 				var lineConverted = lineFromFileIn.split(":").join("colon");
 				lineConverted = this.convertLine(lineConverted);
-				lineConverted = lineFromFileIn.split("colon").join(":");
+				lineConverted = lineConverted.split("colon").join(":");
 				linesConverted.push(lineConverted);
 			}
 			else
@@ -182,7 +225,11 @@ class Converter
 			{
 				charsInPossibleTypeAnnotation += char;
 
-				if (char == "(")
+				if (char == " ")
+				{
+					inPossibleTypeAnnotation = false;
+				}
+				else if (char == "(")
 				{
 					var lambdaArrow = "=>";
 					var indexOfNextLambdaArrow = lineToConvert.indexOf(lambdaArrow, i);
@@ -190,6 +237,29 @@ class Converter
 					{
 						i = indexOfNextLambdaArrow + lambdaArrow.length;
 					}
+				}
+				else if (char == "[")
+				{
+					var iBeforePossibleTuple = i;
+					var depthIntoPossibleTuple = 1;
+					var possibleTupleAsString = char;
+					var j = i + 1;
+					while (depthIntoPossibleTuple > 0 && j < lineToConvert.length)
+					{
+						char = lineToConvert[j];
+						possibleTupleAsString += char;
+						if (char == "]")
+						{
+							depthIntoPossibleTuple--;
+						}
+						else if (char == "[")
+						{
+							depthIntoPossibleTuple++;
+						}
+						j++;
+					}
+
+					i = j - 1;
 				}
 				else if (char == "<")
 				{
@@ -252,6 +322,14 @@ class Converter
 			{
 				inPossibleTypeAnnotation = true;
 				charsInPossibleTypeAnnotation = char;
+
+				char = " ";
+				while (char == " ")
+				{
+					i++;
+					char = lineToConvert[i];
+				}
+				i--;
 			}
 			else if (char == "a")
 			{
@@ -262,11 +340,20 @@ class Converter
 					&& lineToConvert[i + 1] == "s"
 					&& lineToConvert[i + 2] == " "
 				);
+
 				if (isAs)
 				{
 					inPossibleTypeAnnotation = true;
 					i += "as".length;
 					charsInPossibleTypeAnnotation = "";
+
+					char = " ";
+					while (char == " ")
+					{
+						i++;
+						char = lineToConvert[i];
+					}
+					i--;
 				}
 				else
 				{
