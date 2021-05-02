@@ -102,10 +102,11 @@ class Converter
 				|| lineTrimmed.startsWith("export interface ")
 			)
 			{
-				while (lineTrimmed.startsWith("}") == false)
+				while (lineTrimmed.endsWith("}") == false)
 				{
 					i++;
-					lineTrimmed = textFromFileInAsLines[i].trim();
+					lineFromFileIn = textFromFileInAsLines[i];
+					lineTrimmed = lineFromFileIn.trim();
 				}
 			}
 			else if (lineTrimmed.startsWith("namespace "))
@@ -113,7 +114,8 @@ class Converter
 				while (lineTrimmed.startsWith("{") == false)
 				{
 					i++;
-					lineTrimmed = textFromFileInAsLines[i].trim();
+					lineFromFileIn = textFromFileInAsLines[i];
+					lineTrimmed = lineFromFileIn.trim();
 				}
 
 				// Remove final brace.
